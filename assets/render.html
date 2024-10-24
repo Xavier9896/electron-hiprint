@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>打印窗口</title>
+</head>
+
+<body>
+<div id="printElement"></div>
+<script>
+  window.$ = window.jQuery = require("jquery");
+
+  $(document).ready(function() {
+    const script = document.createElement("script");
+    script.setAttribute("type", "text/javascript");
+    script.setAttribute("src", "../../plugin/0.0.56_vue-plugin-hiprint.js");
+    script.addEventListener("load", () => {
+      hiprint = window["vue-plugin-hiprint"].hiprint;
+    })
+    const head = document.querySelector("head");
+    head.append($(`<link rel="stylesheet" type="text/css" media="print" href="../../plugin/0.0.56_print-lock.css">`)[0]);
+    head.append(script);
+  });
+</script>
+</body>
+</html>

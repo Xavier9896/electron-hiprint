@@ -32,6 +32,9 @@
     "files": [
       "**/*"
     ],
+    "extraResources": [
+      "plugin/*"
+    ],
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"
     },

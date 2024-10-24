@@ -18,6 +18,7 @@ const path = require("path");
 const server = require("http").createServer();
 const helper = require("./src/helper");
 const printSetup = require("./src/print");
+const renderSetup = require("./src/render");
 const setSetup = require("./src/set");
 const log = require("./tools/log");
 const {
@@ -35,6 +36,8 @@ global.MAIN_WINDOW = null;
 global.APP_TRAY = null;
 // 打印窗口
 global.PRINT_WINDOW = null;
+// 渲染窗口
+global.RENDER_WINDOW = null;
 // 设置窗口
 global.SET_WINDOW = null;
 // socket.io 服务端
@@ -247,6 +250,8 @@ async function createWindow() {
   initTray();
   // 打印窗口初始化
   await printSetup();
+  // 渲染窗口初始化
+  await renderSetup();
 
   return MAIN_WINDOW;
 }

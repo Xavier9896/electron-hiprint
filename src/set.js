@@ -14,6 +14,8 @@ const {
   dialog,
 } = require("electron");
 const path = require("path");
+const https = require("node:https");
+const fs = require("node:fs");
 const { store } = require("../tools/utils");
 const log = require("../tools/log");
 
@@ -124,6 +126,40 @@ function setConfig(event, data) {
     });
 }
 
+function downloadPlugin(event, data) {
+  const fileList = ["vue-plugin-hiprint.js", "vue-plugin-hiprint.css"];
+  Promise.all(fileList.map(url => {
+    return new Promise((resolve, reject) => {
+        https.get(`https://registry.npmmirror.com/vue-plugin-hiprint/${data}/files/dist/${url}`, (res) => {
+          let filePath = "";
+          if (app.isPackaged) {
+            filePath = `${path.dirname(app.getAppPath())}/plugin/${data}_${url}`;
+          } else {
+            filePath = `${app.getAppPath()}/plugin/${data}_${url}`;
+          }
+          dialog.showMessageBox(SET_WINDOW, {
+            type: "info",
+            title: "提示",
+            message: filePath,
+            buttons: ["确定"],
+          })
+          const fileStream = fs.createWriteStream(filePath);
+          res.pipe(fileStream);
+          res.on("end", () => {
+            resolve();
+          });
+        })
+    })
+  })).then(() => {
+    dialog.showMessageBox(SET_WINDOW, {
+      type: "info",
+      title: "提示",
+      message: "下载成功！",
+      buttons: ["确定"],
+    });
+  })
+}
+
 /**
  * @description: 渲染进程触发设置工作区大小
  * @param {IpcMainEvent} event
@@ -205,6 +241,7 @@ function initSetEvent() {
   ipcMain.on("showMessageBox", showMessageBox);
   ipcMain.on("testTransit", testTransit);
   ipcMain.on("closeSetWindow", closeSetWindow);
+  ipcMain.on("downloadPlugin", downloadPlugin);
 }
 
 /**
@@ -218,6 +255,7 @@ function removeEvent() {
   ipcMain.removeListener("showMessageBox", showMessageBox);
   ipcMain.removeListener("testTransit", testTransit);
   ipcMain.removeListener("closeSetWindow", closeSetWindow);
+  ipcMain.removeListener("downloadPlugin", downloadPlugin);
   SET_WINDOW = null;
 }
 
