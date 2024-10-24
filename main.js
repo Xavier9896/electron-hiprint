@@ -12,12 +12,13 @@ const {
   Notification,
   Tray,
   Menu,
-  shell
+  shell,
 } = require("electron");
 const path = require("path");
 const server = require("http").createServer();
 const helper = require("./src/helper");
 const printSetup = require("./src/print");
+const renderSetup = require("./src/render");
 const setSetup = require("./src/set");
 const log = require("./tools/log");
 const {
@@ -35,6 +36,8 @@ global.MAIN_WINDOW = null;
 global.APP_TRAY = null;
 // 打印窗口
 global.PRINT_WINDOW = null;
+// 渲染窗口
+global.RENDER_WINDOW = null;
 // 设置窗口
 global.SET_WINDOW = null;
 // socket.io 服务端
@@ -56,6 +59,8 @@ global.PRINT_FRAGMENTS_MAPPING = {
   //   }
   // }
 };
+global.RENDER_RUNNER = new TaskRunner({ concurrency: 1 });
+global.RENDER_RUNNER_DONE = {};
 
 // socket.io 服务端，用于创建本地服务
 const ioServer = (global.SOCKET_SERVER = new require("socket.io")(server, {
@@ -137,7 +142,7 @@ async function initialize() {
         createWindow();
       }
     });
-    log("==> Electron-hiprint 启动 <==")
+    log("==> Electron-hiprint 启动 <==");
   });
 }
 
@@ -247,6 +252,8 @@ async function createWindow() {
   initTray();
   // 打印窗口初始化
   await printSetup();
+  // 渲染窗口初始化
+  await renderSetup();
 
   return MAIN_WINDOW;
 }
@@ -266,7 +273,11 @@ function loadingView(windowOptions) {
     height: windowOptions.height,
   });
 
-  const loadingHtml = path.join("file://", app.getAppPath(), "assets/loading.html");
+  const loadingHtml = path.join(
+    "file://",
+    app.getAppPath(),
+    "assets/loading.html",
+  );
   loadingBrowserView.webContents.loadURL(loadingHtml);
 
   // 主窗口 dom 加载完毕，移除 loadingBrowserView
@@ -312,7 +323,7 @@ function initTray() {
       label: "查看日志",
       click: () => {
         shell.openPath(app.getPath("logs"));
-      }
+      },
     },
     {
       label: "退出",

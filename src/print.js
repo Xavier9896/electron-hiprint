@@ -46,7 +46,7 @@ async function createPrintWindow() {
  */
 function initPrintEvent() {
   ipcMain.on("do", (event, data) => {
-    var socket = null;
+    let socket = null;
     if (data.clientType === "local") {
       socket = SOCKET_SERVER.sockets.sockets.get(data.socketId);
     } else {
@@ -80,7 +80,9 @@ function initPrintEvent() {
     });
     if (printerError) {
       log(
-        `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印失败，打印机异常，打印机：${data.printer}`
+        `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+          data.templateId
+        }】 打印失败，打印机异常，打印机：${data.printer}`,
       );
       socket &&
         socket.emit("error", {
@@ -121,7 +123,11 @@ function initPrintEvent() {
           printPdf(pdfPath, deviceName, data)
             .then(() => {
               log(
-                `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印成功，打印类型：PDF，打印机：${deviceName}，页数：${data.pageNum}`
+                `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+                  data.templateId
+                }】 打印成功，打印类型：PDF，打印机：${deviceName}，页数：${
+                  data.pageNum
+                }`,
               );
               if (socket) {
                 const result = {
@@ -135,7 +141,11 @@ function initPrintEvent() {
             })
             .catch((err) => {
               log(
-                `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印失败，打印类型：PDF，打印机：${deviceName}，原因：${err.message}`
+                `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+                  data.templateId
+                }】 打印失败，打印类型：PDF，打印机：${deviceName}，原因：${
+                  err.message
+                }`,
               );
               socket &&
                 socket.emit("error", {
@@ -160,7 +170,11 @@ function initPrintEvent() {
       printPdf(data.pdf_path, deviceName, data)
         .then(() => {
           log(
-            `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印成功，打印类型：URL_PDF，打印机：${deviceName}，页数：${data.pageNum}`
+            `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+              data.templateId
+            }】 打印成功，打印类型：URL_PDF，打印机：${deviceName}，页数：${
+              data.pageNum
+            }`,
           );
           if (socket) {
             const result = {
@@ -174,7 +188,11 @@ function initPrintEvent() {
         })
         .catch((err) => {
           log(
-            `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印失败，打印类型：URL_PDF，打印机：${deviceName}，原因：${err.message}`
+            `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+              data.templateId
+            }】 打印失败，打印类型：URL_PDF，打印机：${deviceName}，原因：${
+              err.message
+            }`,
           );
           socket &&
             socket.emit("error", {
@@ -219,7 +237,11 @@ function initPrintEvent() {
         if (socket) {
           if (success) {
             log(
-              `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印成功，打印类型 HTML，打印机：${deviceName}，页数：${data.pageNum}`
+              `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+                data.templateId
+              }】 打印成功，打印类型 HTML，打印机：${deviceName}，页数：${
+                data.pageNum
+              }`,
             );
             const result = {
               msg: "打印成功",
@@ -230,7 +252,9 @@ function initPrintEvent() {
             socket.emit("success", result);
           } else {
             log(
-              `${data.replyId?'中转服务':'插件端'} ${socket.id} 模板 【${data.templateId}】 打印失败，打印类型 HTML，打印机：${deviceName}，原因：${failureReason}`
+              `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模板 【${
+                data.templateId
+              }】 打印失败，打印类型 HTML，打印机：${deviceName}，原因：${failureReason}`,
             );
             socket.emit("error", {
               msg: failureReason,
@@ -244,7 +268,7 @@ function initPrintEvent() {
         // 删除 task
         delete PRINT_RUNNER_DONE[data.taskId];
         MAIN_WINDOW.webContents.send("printTask", PRINT_RUNNER.isBusy());
-      }
+      },
     );
   });
 }
