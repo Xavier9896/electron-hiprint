@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>打印窗口</title>
+</head>
+
+<body>
+<div id="printElement"></div>
+<script>
+  const { ipcRenderer } = require("electron");
+
+  window.$ = window.jQuery = require("jquery");
+  window.autoConnect = false;
+
+  window.template = undefined;
+
+  window.io = () => {};
+
+  $(document).ready(function() {
+    const script = document.createElement("script");
+    script.setAttribute("type", "text/javascript");
+    script.setAttribute("src", "../plugin/0.0.56_vue-plugin-hiprint.js");
+    script.addEventListener("load", () => {
+      hiprint = window["vue-plugin-hiprint"].hiprint;
+
+      ipcRenderer.on("png", (event, data) => {
+        window.template = new hiprint.PrintTemplate({
+          template: data.template
+        })
+        $("#printElement").html(window.template.getHtml(data.data))
+        const rects = Array.from($("#printElement").find(".hiprint-printPaper")).map(el => el.getBoundingClientRect())
+        const rect = {
+          x: rects[0].x,
+          y: rects[0].y,
+          width: rects[0].width,
+          height: rects.pop().bottom
+        }
+        setTimeout(() => {
+            ipcRenderer.send("capturePage", rect)
+        })
+      })
+
+      ipcRenderer.on("pdf", (event, data) => {
+        window.template = new hiprint.PrintTemplate({
+          template: data.template
+        })
+        $("#printElement").html(window.template.getHtml(data.data))
+        setTimeout(() => {
+            ipcRenderer.send("printToPDF", data.option || {})
+        })
+      })
+
+      ipcRenderer.on("print", (event, data) => {
+        window.template = new hiprint.PrintTemplate({
+          template: data.template
+        })
+        $("#printElement").html(window.template.getHtml(data.data))
+      })
+
+    })
+    const head = document.querySelector("head");
+    head.append($(`<link rel="stylesheet" type="text/css" media="print" href="../plugin/0.0.56_print-lock.css">`)[0]);
+    head.append(script);
+  });
+</script>
+</body>
+</html>

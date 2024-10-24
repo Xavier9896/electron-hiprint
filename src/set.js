@@ -1,8 +1,8 @@
 /*
  * @Date: 2023-09-05 17:34:28
  * @LastEditors: admin@54xavier.cn
- * @LastEditTime: 2024-04-05 10:06:51
- * @FilePath: \electron-hiprint\src\set.js
+ * @LastEditTime: 2024-07-22 16:26:09
+ * @FilePath: /electron-hiprint/src/set.js
  */
 "use strict";
 
@@ -14,6 +14,8 @@ const {
   dialog,
 } = require("electron");
 const path = require("path");
+const https = require("node:https");
+const fs = require("node:fs");
 const { store } = require("../tools/utils");
 const log = require("../tools/log");
 
@@ -124,6 +126,44 @@ function setConfig(event, data) {
     });
 }
 
+function downloadPlugin(event, data) {
+  const fileList = ["vue-plugin-hiprint.js", "print-lock.css"];
+  Promise.all(fileList.map(url => {
+    return new Promise((resolve, reject) => {
+        https.get(`https://registry.npmmirror.com/vue-plugin-hiprint/${data}/files/dist/${url}`, (res) => {
+          let filePath = "";
+          if (app.isPackaged) {
+            filePath = `${path.dirname(app.getAppPath())}/plugin/${data}_${url}`;
+          } else {
+            filePath = `${app.getAppPath()}/plugin/${data}_${url}`;
+          }
+          const fileStream = fs.createWriteStream(filePath);
+          res.pipe(fileStream);
+          res.on("end", () => {
+            resolve();
+          });
+          res.on("error", () => {
+            reject();
+          })
+        })
+    })
+  })).then(() => {
+    dialog.showMessageBox(SET_WINDOW, {
+      type: "info",
+      title: "提示",
+      message: "插件下载成功！",
+      buttons: ["确定"],
+    });
+  }).catch(() => {
+    dialog.showMessageBox(SET_WINDOW, {
+      type: "error",
+      title: "提示",
+      message: "插件下载失败！",
+      buttons: ["确定"],
+    });
+  })
+}
+
 /**
  * @description: 渲染进程触发设置工作区大小
  * @param {IpcMainEvent} event
@@ -182,8 +222,25 @@ function testTransit(event, data) {
       message: "连接成功！",
       buttons: ["确定"],
     });
-    socket.close();
   });
+
+  // 中转服务信息
+  socket.on("serverInfo", (data) => {
+    // TODO: 根据服务器返回信息判断服务器是否满足连接条件
+    // {
+    //   version: '0.0.4', // 中转服务版本号
+    //   currentClients: 1, // 当前 token client 连接数
+    //   allClients: 1, // 所有 token client 连接数
+    //   webClients: 1, // web client 连接数
+    //   allWebClients: 1, // 所有 web client 连接数
+    //   totalmem: 17179869184, // 总内存
+    //   freemem: 94961664, // 可用内存
+    // }
+
+    console.log(data);
+    // 关闭测试连接
+    socket.close();
+  })
 }
 
 /**
@@ -205,6 +262,7 @@ function initSetEvent() {
   ipcMain.on("showMessageBox", showMessageBox);
   ipcMain.on("testTransit", testTransit);
   ipcMain.on("closeSetWindow", closeSetWindow);
+  ipcMain.on("downloadPlugin", downloadPlugin);
 }
 
 /**
@@ -218,6 +276,7 @@ function removeEvent() {
   ipcMain.removeListener("showMessageBox", showMessageBox);
   ipcMain.removeListener("testTransit", testTransit);
   ipcMain.removeListener("closeSetWindow", closeSetWindow);
+  ipcMain.removeListener("downloadPlugin", downloadPlugin);
   SET_WINDOW = null;
 }
 

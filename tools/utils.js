@@ -1,3 +1,4 @@
+const os = require("os");
 const address = require("address");
 const ipp = require("ipp");
 const { machineIdSync } = require("node-machine-id");
@@ -132,6 +133,7 @@ const watchTaskInstance = generateWatchTask(() => global.PRINT_FRAGMENTS_MAPPING
 function emitClientInfo(socket) {
   _address.mac().then((mac) => {
     socket.emit("clientInfo", {
+      hostname: os.hostname(), // 主机名
       version: app.getVersion(), // 版本号
       platform: process.platform, // 平台
       arch: process.arch, // 系统架构
@@ -246,7 +248,7 @@ function initServeEvent(server) {
     }
 
     // 向 client 发送打印机列表
-    socket.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    socket.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
 
     // 向 client 发送客户端信息
     emitClientInfo(socket);
@@ -292,7 +294,7 @@ function initServeEvent(server) {
      */
     socket.on("refreshPrinterList", () => {
       log(`插件端 ${socket.id}: refreshPrinterList`);
-      socket.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+      socket.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
     });
 
     /**
@@ -428,6 +430,18 @@ function initServeEvent(server) {
       }
     });
 
+    socket.on('render-print', (data) => {
+      RENDER_WINDOW.webContents.send('print', data);
+    })
+
+    socket.on('render-png', (data) => {
+      RENDER_WINDOW.webContents.send('png', data);
+    })
+
+    socket.on('render-pdf', (data) => {
+      RENDER_WINDOW.webContents.send('pdf', data);
+    })
+
     /**
      * @description: client 断开连接
      */
@@ -469,7 +483,7 @@ function initClientEvent() {
     }
 
     // 向 中转服务 发送打印机列表
-    client.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    client.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
 
     // 向 中转服务 发送客户端信息
     emitClientInfo(client);
@@ -488,7 +502,7 @@ function initClientEvent() {
    */
   client.on("refreshPrinterList", () => {
     log(`中转服务 ${client.id}: refreshPrinterList`);
-    client.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    client.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
   });
 
   /**

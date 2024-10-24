@@ -59,7 +59,7 @@
   <body>
     <div id="printElement"></div>
     <script>
-      const { ipcRenderer, BrowserWindow } = require("electron");
+      const { ipcRenderer } = require("electron");
 
       $(document).ready(function() {
         ipcRenderer.on("print-new", (event, data) => {

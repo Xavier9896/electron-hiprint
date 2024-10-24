@@ -85,12 +85,12 @@
           ></el-input>
         </el-form-item>
         <!-- 插件版本 设置 -->
-        <!-- <el-form-item label="插件版本设置" prop="pluginVersion">
+        <el-form-item label="插件版本设置" prop="pluginVersion">
           <el-select
             v-model="formData.pluginVersion"
             filterable
             size="small"
-            @change="onChange({prop: pluginVersion, value: $event})"
+            @change="onChange({prop: 'pluginVersion', value: $event})"
           >
             <template v-for="option in versions">
               <el-option
@@ -105,7 +105,7 @@
               </el-option>
             </template>
           </el-select>
-        </el-form-item> -->
+        </el-form-item>
         <!-- 开机启动设置 -->
         <el-row :gutter="12">
           <el-col :span="16">
@@ -303,7 +303,7 @@
                 });
                 break;
               case "pluginVersion":
-                // TODO: 下载插件对应 js、css 文件到本地
+                  ipc.send("downloadPlugin", value);
                 break;
             }
           },
