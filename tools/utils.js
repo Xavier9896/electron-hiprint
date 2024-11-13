@@ -1,3 +1,4 @@
+const os = require("os");
 const address = require("address");
 const ipp = require("ipp");
 const { machineIdSync } = require("node-machine-id");
@@ -132,6 +133,7 @@ const watchTaskInstance = generateWatchTask(() => global.PRINT_FRAGMENTS_MAPPING
 function emitClientInfo(socket) {
   _address.mac().then((mac) => {
     socket.emit("clientInfo", {
+      hostname: os.hostname(), // 主机名
       version: app.getVersion(), // 版本号
       platform: process.platform, // 平台
       arch: process.arch, // 系统架构

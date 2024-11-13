@@ -1,8 +1,8 @@
 /*
  * @Date: 2023-09-05 17:34:28
  * @LastEditors: admin@54xavier.cn
- * @LastEditTime: 2024-04-05 10:06:51
- * @FilePath: \electron-hiprint\src\set.js
+ * @LastEditTime: 2024-07-22 16:26:09
+ * @FilePath: /electron-hiprint/src/set.js
  */
 "use strict";
 
@@ -127,7 +127,7 @@ function setConfig(event, data) {
 }
 
 function downloadPlugin(event, data) {
-  const fileList = ["vue-plugin-hiprint.js", "vue-plugin-hiprint.css"];
+  const fileList = ["vue-plugin-hiprint.js", "print-lock.css"];
   Promise.all(fileList.map(url => {
     return new Promise((resolve, reject) => {
         https.get(`https://registry.npmmirror.com/vue-plugin-hiprint/${data}/files/dist/${url}`, (res) => {
@@ -218,8 +218,25 @@ function testTransit(event, data) {
       message: "连接成功！",
       buttons: ["确定"],
     });
-    socket.close();
   });
+
+  // 中转服务信息
+  socket.on("serverInfo", (data) => {
+    // TODO: 根据服务器返回信息判断服务器是否满足连接条件
+    // {
+    //   version: '0.0.4', // 中转服务版本号
+    //   currentClients: 1, // 当前 token client 连接数
+    //   allClients: 1, // 所有 token client 连接数
+    //   webClients: 1, // web client 连接数
+    //   allWebClients: 1, // 所有 web client 连接数
+    //   totalmem: 17179869184, // 总内存
+    //   freemem: 94961664, // 可用内存
+    // }
+
+    console.log(data);
+    // 关闭测试连接
+    socket.close();
+  })
 }
 
 /**
