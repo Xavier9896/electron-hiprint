@@ -101,7 +101,7 @@
     "win32-pdf-printer": "^4.0.1"
   },
   "devDependencies": {
-    "electron": "^15.0.0",
+    "electron": "^17.0.0",
     "electron-builder": "23.0.6",
     "fs-extra": "^9.1.0",
     "prettier": "^1.16.4",

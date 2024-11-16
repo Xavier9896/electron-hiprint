@@ -137,24 +137,28 @@ function downloadPlugin(event, data) {
           } else {
             filePath = `${app.getAppPath()}/plugin/${data}_${url}`;
           }
-          dialog.showMessageBox(SET_WINDOW, {
-            type: "info",
-            title: "提示",
-            message: filePath,
-            buttons: ["确定"],
-          })
           const fileStream = fs.createWriteStream(filePath);
           res.pipe(fileStream);
           res.on("end", () => {
             resolve();
           });
+          res.on("error", () => {
+            reject();
+          })
         })
     })
   })).then(() => {
     dialog.showMessageBox(SET_WINDOW, {
       type: "info",
       title: "提示",
-      message: "下载成功！",
+      message: "插件下载成功！",
+      buttons: ["确定"],
+    });
+  }).catch(() => {
+    dialog.showMessageBox(SET_WINDOW, {
+      type: "error",
+      title: "提示",
+      message: "插件下载失败！",
       buttons: ["确定"],
     });
   })

@@ -248,7 +248,7 @@ function initServeEvent(server) {
     }
 
     // 向 client 发送打印机列表
-    socket.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    socket.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
 
     // 向 client 发送客户端信息
     emitClientInfo(socket);
@@ -294,7 +294,7 @@ function initServeEvent(server) {
      */
     socket.on("refreshPrinterList", () => {
       log(`插件端 ${socket.id}: refreshPrinterList`);
-      socket.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+      socket.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
     });
 
     /**
@@ -430,6 +430,18 @@ function initServeEvent(server) {
       }
     });
 
+    socket.on('render-print', (data) => {
+      RENDER_WINDOW.webContents.send('print', data);
+    })
+
+    socket.on('render-png', (data) => {
+      RENDER_WINDOW.webContents.send('png', data);
+    })
+
+    socket.on('render-pdf', (data) => {
+      RENDER_WINDOW.webContents.send('pdf', data);
+    })
+
     /**
      * @description: client 断开连接
      */
@@ -471,7 +483,7 @@ function initClientEvent() {
     }
 
     // 向 中转服务 发送打印机列表
-    client.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    client.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
 
     // 向 中转服务 发送客户端信息
     emitClientInfo(client);
@@ -490,7 +502,7 @@ function initClientEvent() {
    */
   client.on("refreshPrinterList", () => {
     log(`中转服务 ${client.id}: refreshPrinterList`);
-    client.emit("printerList", MAIN_WINDOW.webContents.getPrinters());
+    client.emit("printerList", MAIN_WINDOW.webContents.getPrintersAsync());
   });
 
   /**

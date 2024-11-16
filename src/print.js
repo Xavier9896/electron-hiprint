@@ -52,7 +52,7 @@ function initPrintEvent() {
     } else {
       socket = SOCKET_CLIENT;
     }
-    const printers = PRINT_WINDOW.webContents.getPrinters();
+    const printers = PRINT_WINDOW.webContents.getPrintersAsync();
     let havePrinter = false;
     let defaultPrinter = "";
     let printerError = false;
