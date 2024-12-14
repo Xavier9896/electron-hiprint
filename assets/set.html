@@ -1,8 +1,8 @@
 <!--
  * @Date: 2023-09-05 13:56:58
  * @LastEditors: admin@54xavier.cn
- * @LastEditTime: 2024-04-05 13:04:55
- * @FilePath: \electron-hiprint\assets\set.html
+ * @LastEditTime: 2024-12-14 21:50:41
+ * @FilePath: /electron-hiprint/assets/set.html
 -->
 <!DOCTYPE html>
 <html>
@@ -53,7 +53,6 @@
         display: none; /* Chrome, Safari 和 Opera */
       }
     </style>
-    <title>设置</title>
   </head>
 
   <body class="hide-scrollbar">
@@ -74,7 +73,7 @@
           <template v-for="item in formOptions.items">
             <el-col :span="item.span || formOptions.span">
               <el-form-item
-                v-if="item.display"
+                v-if="item.display !== false"
                 :key="item.prop"
                 :label="item.label"
                 :prop="item.prop"
@@ -88,7 +87,19 @@
                   v-on="item.event"
                 >
                   <template v-for="option in item.options">
-                    <component :is="item.optionIs" v-bind="option">
+                    <template v-if="item.optionRender">
+                      <component
+                        :is="item.optionIs"
+                        v-bind="option"
+                        :key="option.value"
+                      >
+                        <render-component
+                          :render="item.optionRender"
+                          :data="option"
+                        />
+                      </component>
+                    </template>
+                    <component v-else :is="item.optionIs" v-bind="option">
                       {{ option.content || option.value }}
                     </component>
                   </template>
@@ -130,6 +141,7 @@
       const store = new Store();
 
       let ipc = ipcRenderer;
+
       new Vue({
         el: "#app",
         data: () => {
@@ -162,7 +174,8 @@
               transitToken: "",
               allowNotify: false,
               closeType: "tray",
-              logPath: ""
+              logPath: "",
+              pdfPath: "",
             },
             // 预制的版本，解决部分内网无法获取新版本的问题
             versions: [
@@ -183,6 +196,7 @@
                 updateTime: "2023/05/08 17:57:53",
               },
             ],
+            downloadedVersions: [], // 存储已下载版本
           };
         },
         computed: {
@@ -242,6 +256,49 @@
                     defaultFirstOption: true,
                   },
                   options: this.versions,
+                  optionRender: (h, option) => {
+                    const isDownloaded = this.downloadedVersions.includes(
+                      option.value,
+                    );
+                    return h(
+                      "div",
+                      {
+                        style: {
+                          display: "flex",
+                          justifyContent: "space-between",
+                        },
+                      },
+                      [
+                        h(
+                          "span",
+                          {
+                            style: {
+                              fontFamily: "monospace",
+                            },
+                          },
+                          option.value,
+                        ),
+                        h(
+                          "span",
+                          {
+                            style: {
+                              fontFamily: "monospace",
+                            },
+                          },
+                          [
+                            option.info,
+                            h("i", {
+                              class: "el-icon-success",
+                              style: {
+                                color: isDownloaded ? "#67C23A" : "transparent",
+                                marginLeft: "4px",
+                              },
+                            }),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                   event: {
                     change: (val) => ipc.send("downloadPlugin", val),
                   },
@@ -252,7 +309,13 @@
                   prop: "logPath",
                   is: "el-input",
                   attrs: {
-                    disabled: true,
+                    readonly: true,
+                  },
+                  event: {
+                    click: () => {
+                      console.log("click", this.formData.logPath);
+                      this.openDirectory("logPath");
+                    },
                   },
                   span: 18,
                   display: this.setTab === "basicSet",
@@ -261,7 +324,37 @@
                   label: "选择路径",
                   is: "el-button",
                   event: {
-                    click: () => this.chooseDirectory(),
+                    click: () => {
+                      this.chooseDirectory("logPath");
+                    },
+                  },
+                  content: "选择",
+                  span: 6,
+                  display: this.setTab === "basicSet",
+                },
+                {
+                  label: "PDF 缓存路径",
+                  prop: "pdfPath",
+                  is: "el-input",
+                  attrs: {
+                    readonly: true,
+                  },
+                  event: {
+                    click: () => {
+                      console.log("click", this.formData.pdfPath);
+                      this.openDirectory("pdfPath");
+                    },
+                  },
+                  span: 18,
+                  display: this.setTab === "basicSet",
+                },
+                {
+                  label: "选择路径",
+                  is: "el-button",
+                  event: {
+                    click: () => {
+                      this.chooseDirectory("pdfPath");
+                    },
                   },
                   content: "选择",
                   span: 6,
@@ -352,15 +445,23 @@
                   label: "关闭主窗口动作",
                   prop: "closeType",
                   is: "el-radio-group",
-                  optionIs: "el-radio-button",
+                  optionIs: "el-radio",
                   options: [
                     {
                       label: "tray",
+                      border: true,
                       content: "最小化到托盘",
+                      style: {
+                        marginRight: "6px",
+                      }
                     },
                     {
                       label: "quit",
+                      border: true,
                       content: "退出程序",
+                      style: {
+                        marginLeft: "6px",
+                      }
                     },
                   ],
                   display: this.setTab === "advancedSet",
@@ -379,13 +480,18 @@
           },
         },
         created() {
+          ipc.on("downloadedVersions", (event, versions) => {
+            this.downloadedVersions = versions;
+          });
           // 获取配置
-          console.log(store.store);
           this.formData = store.store;
           this.getVersions();
         },
         mounted() {
           this.handleTabChange();
+        },
+        beforeDestroy() {
+          ipc.removeAllListeners("openDialog");
         },
         methods: {
           handleTabChange() {
@@ -417,18 +523,32 @@
               }
             });
           },
-          chooseDirectory() {
+          /**
+           * @description: 选择目录
+           * @param {string} type - 目录类型
+           * @return {void}
+           */
+          chooseDirectory(type) {
             ipc.send("showOpenDialog", {
               title: "选择日志存储路径",
-              defaultPath: this.formData.logPath,
+              defaultPath: this.formData[type],
               properties: ["openDirectory"],
             });
             ipc.once("openDialog", (event, result) => {
               if (!result.canceled) {
-                console.log(result.filePaths[0])
-                this.formData.logPath = result.filePaths[0];
+                this.$set(this.formData, type, result.filePaths[0]);
               }
             });
+          },
+          /**
+           * @description: 打开目录
+           * @param {string} type - 目录类型
+           * @return {void}
+           */
+          openDirectory(type) {
+            if (this.formData[type]) {
+              ipc.send("openDirectory", this.formData[type]);
+            }
           },
           /**
            * @description: 提交设置
@@ -477,8 +597,21 @@
                 );
               }
             };
+            xhr.onerror = () => {
+              console.log("获取版本信息失败");
+            };
             xhr.send();
           },
+        },
+      });
+
+      Vue.component("render-component", {
+        props: {
+          render: Function,
+          data: Object,
+        },
+        render(h) {
+          return this.render(h, this.data);
         },
       });
     </script>

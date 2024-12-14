@@ -1,7 +1,7 @@
 /*
  * @Date: 2023-09-05 17:34:28
  * @LastEditors: admin@54xavier.cn
- * @LastEditTime: 2024-07-22 16:26:09
+ * @LastEditTime: 2024-12-14 21:40:09
  * @FilePath: /electron-hiprint/src/set.js
  */
 "use strict";
@@ -12,6 +12,7 @@ const {
   BrowserView,
   ipcMain,
   dialog,
+  shell,
 } = require("electron");
 const path = require("path");
 const https = require("node:https");
@@ -59,6 +60,11 @@ async function createSetWindow() {
   // 监听退出，移除所有事件
   SET_WINDOW.on("closed", removeEvent);
 
+  SET_WINDOW.webContents.on("did-finish-load", () => {
+    const downloadedVersions = getDownloadedVersions();
+    SET_WINDOW.webContents.send("downloadedVersions", downloadedVersions);
+  });
+
   return SET_WINDOW;
 }
 
@@ -84,7 +90,7 @@ function loadingView(windowOptions) {
   );
   loadingBrowserView.webContents.loadURL(loadingHtml);
 
-  // 主窗口 dom 加载完毕，移除 loadingBrowserView
+  // 设置窗口 dom 加载完毕，移除 loadingBrowserView
   SET_WINDOW.webContents.on("dom-ready", async (event) => {
     SET_WINDOW.removeBrowserView(loadingBrowserView);
   });
@@ -117,6 +123,12 @@ function setConfig(event, data) {
     });
 }
 
+/**
+ * @description: 渲染进程触发下载插件
+ * @param {IpcMainEvent} event
+ * @param {Object} data 插件版本号
+ * @return {void}
+ */
 function downloadPlugin(event, data) {
   const fileList = ["vue-plugin-hiprint.js", "print-lock.css"];
   Promise.all(
@@ -184,10 +196,26 @@ function showMessageBox(event, data) {
   dialog.showMessageBox(SET_WINDOW, data);
 }
 
+/**
+ * @description: 渲染进程触发选择目录
+ * @param {IpcMainEvent} event
+ * @param {Object} data https://www.electronjs.org/zh/docs/latest/api/dialog#dialogshowopendialogbrowserwindow-options
+ * @return {void}
+ */
 function showOpenDialog(event, data) {
   dialog.showOpenDialog(SET_WINDOW, data).then((result) => {
     event.reply("openDialog", result);
   });
+}
+
+/**
+ * @description: 渲染进程触发打开目录
+ * @param {IpcMainEvent} event
+ * @param {Object} data 目录路径
+ * @return {void}
+ */
+function openDirectory(event, data) {
+  shell.openPath(data);
 }
 
 /**
@@ -266,6 +294,7 @@ function initSetEvent() {
   ipcMain.on("setContentSize", setContentSize);
   ipcMain.on("showMessageBox", showMessageBox);
   ipcMain.on("showOpenDialog", showOpenDialog);
+  ipcMain.on("openDirectory", openDirectory);
   ipcMain.on("testTransit", testTransit);
   ipcMain.on("closeSetWindow", closeSetWindow);
   ipcMain.on("downloadPlugin", downloadPlugin);
@@ -280,10 +309,21 @@ function removeEvent() {
   ipcMain.removeListener("setContentSize", setContentSize);
   ipcMain.removeListener("showMessageBox", showMessageBox);
   ipcMain.removeListener("showOpenDialog", showOpenDialog);
+  ipcMain.removeListener("openDirectory", openDirectory);
   ipcMain.removeListener("testTransit", testTransit);
   ipcMain.removeListener("closeSetWindow", closeSetWindow);
   ipcMain.removeListener("downloadPlugin", downloadPlugin);
   SET_WINDOW = null;
+}
+
+function getDownloadedVersions() {
+  const pluginDir = path.join(app.getAppPath(), "plugin");
+  if (!fs.existsSync(pluginDir)) {
+    return [];
+  }
+  return fs.readdirSync(pluginDir)
+    .filter(file => file.endsWith(".js")) // 假设插件文件以 .js 结尾
+    .map(file => file.split("_")[0]); // 提取版本号
 }
 
 module.exports = async () => {

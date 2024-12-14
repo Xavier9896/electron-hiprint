@@ -60,6 +60,10 @@ const schema = {
     type: "string",
     default: "",
   },
+  pdfPath: {
+    type: "string",
+    default: "",
+  },
 };
 
 const store = new Store({ schema });

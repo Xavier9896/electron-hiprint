@@ -1,8 +1,8 @@
 /*
  * @Date: 2024-01-25 15:52:14
  * @LastEditors: admin@54xavier.cn
- * @LastEditTime: 2024-04-05 09:41:20
- * @FilePath: \electron-hiprint\main.js
+ * @LastEditTime: 2024-12-15 01:30:48
+ * @FilePath: /electron-hiprint/main.js
  */
 const {
   app,
@@ -20,6 +20,7 @@ const helper = require("./src/helper");
 const printSetup = require("./src/print");
 const renderSetup = require("./src/render");
 const setSetup = require("./src/set");
+const printLogSetup = require("./src/printLog");
 const log = require("./tools/log");
 const {
   store,
@@ -36,10 +37,12 @@ global.MAIN_WINDOW = null;
 global.APP_TRAY = null;
 // 打印窗口
 global.PRINT_WINDOW = null;
-// 渲染窗口
-global.RENDER_WINDOW = null;
 // 设置窗口
 global.SET_WINDOW = null;
+// 渲染窗口
+global.RENDER_WINDOW = null;
+// 打印日志窗口
+global.PRINT_LOG_WINDOW = null;
 // socket.io 服务端
 global.SOCKET_SERVER = null;
 // socket.io-client 客户端
@@ -312,17 +315,23 @@ function initTray() {
     {
       label: "设置",
       click: () => {
-        if (!SET_WINDOW) {
-          setSetup();
-        } else {
-          SET_WINDOW.show();
-        }
+        openSetWindow();
       },
     },
     {
       label: "查看日志",
       click: () => {
         shell.openPath(app.getPath("logs"));
+      },
+    },
+    {
+      label: "打印日志",
+      click: () => {
+        if (!PRINT_LOG_WINDOW) {
+          printLogSetup();
+        } else {
+          PRINT_LOG_WINDOW.show();
+        }
       },
     },
     {
