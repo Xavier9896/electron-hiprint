@@ -13,7 +13,8 @@ function createPrintLogWindow() {
   const windowOptions = {
     width: 1080,
     height: 600,
-    minWidth: 1020,
+    minWidth: 1040,
+    minHeight: 550,
     alwaysOnTop: true,
     webPreferences: {
       nodeIntegration: true,
@@ -81,10 +82,12 @@ function loadingView(windowOptions) {
  * @description: 获取打印日志
  * @param {Array} condition 搜索条件
  * @param {Array} params 搜索参数
+ * @param {Object} page 分页
+ * @param {Object} sort 排序
  * @param {Function} callback 回调函数
  * @return {void}
  */
-function fetchPrintLogs(condition, params, page, callback) {
+function fetchPrintLogs({ condition, params, page, sort }, callback) {
   const baseQuery = `SELECT id, timestamp, socketId, clientType, printer, templateId, pageNum, status, errorMessage FROM print_logs`;
   const totalQuery = `SELECT COUNT(*) AS total FROM print_logs`;
   let query = baseQuery;
@@ -93,6 +96,13 @@ function fetchPrintLogs(condition, params, page, callback) {
   if (condition.length > 0) {
     query += " WHERE " + condition.join(" AND ");
     total += " WHERE " + condition.join(" AND ");
+  }
+
+  console.log(sort);
+  if (sort.prop && sort.order) {
+    query += ` ORDER BY ${sort.prop} ${sort.order
+      .replace("ending", "")
+      .toUpperCase()}`;
   }
 
   query += ` LIMIT ${page.pageSize} OFFSET ${(page.currentPage - 1) *
@@ -106,7 +116,6 @@ function fetchPrintLogs(condition, params, page, callback) {
       });
     });
   }
-
 
   Promise.all([allAsync(query, params), allAsync(total, params)])
     .then(([rows, total]) => {
@@ -148,8 +157,8 @@ function rePrint(row) {
  * @return {void}
  */
 function initPrintLogEvent() {
-  ipcMain.on("request-logs", (event, condition, params, page) => {
-    fetchPrintLogs(condition, params, page, (err, logs) => {
+  ipcMain.on("request-logs", (event, { condition, params, page, sort }) => {
+    fetchPrintLogs({ condition, params, page, sort }, (err, logs) => {
       if (err) return;
       event.sender.send("print-logs", logs);
     });

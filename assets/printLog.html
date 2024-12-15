@@ -37,6 +37,14 @@
         width: 100%;
         margin-bottom: 10px;
       }
+
+      .el-table .el-table__cell {
+        padding: 4px 0;
+      }
+
+      .el-table .el-button {
+        padding: 4px 0;
+      }
     </style>
   </head>
   <body>
@@ -102,11 +110,11 @@
       </el-form>
 
       <el-table
+        v-bind="tableOptions"
         :data="logs"
-        border
-        stripe
-        class="table"
-        height="calc(100vh - 51px - 42px - 16px)"
+        columns=""
+        event=""
+        v-on="tableOptions.event"
       >
         <el-table-column
           v-for="column in tableOptions.columns"
@@ -123,6 +131,7 @@
           v-model:currentPage="tableOptions.currentPage"
           v-model:page-size="tableOptions.pageSize"
           :page-sizes="[20, 50, 100, 200]"
+          :pager-count="5"
           :total="tableOptions.total"
           background
           layout="sizes, prev, pager, next, jumper , -> , total"
@@ -206,10 +215,21 @@
               clientType: "",
               status: "",
             },
+            sort: {
+              prop: undefined,
+              order: undefined
+            },
             tableOptions: {
               currentPage: 1,
               pageSize: 20,
               total: 0,
+              height: "calc(100vh - 51px - 42px - 16px)",
+              border: true,
+              stripe: true,
+              class: "table",
+              event: {
+                "sort-change": this.sortChange
+              },
               columns: [
                 {
                   label: "序号",
@@ -233,6 +253,7 @@
                   },
                   width: "160px",
                   align: "center",
+                  sortable: "custom",
                 },
                 {
                   prop: "clientType",
@@ -244,7 +265,8 @@
                     }[cellValue];
                   },
                   align: "center",
-                  width: "80px",
+                  width: "102px",
+                  sortable: "custom",
                 },
                 {
                   prop: "printer",
@@ -278,7 +300,8 @@
                     }[cellValue];
                   },
                   align: "center",
-                  width: "60px",
+                  width: "74px",
+                  sortable: "custom",
                 },
                 {
                   prop: "errorMessage",
@@ -328,7 +351,15 @@
               currentPage: this.tableOptions.currentPage,
               pageSize: this.tableOptions.pageSize,
             };
-            ipcRenderer.send("request-logs", condition, params, page);
+            ipcRenderer.send("request-logs", { condition, params, page, sort: this.sort });
+          },
+          sortChange({order, prop}) {
+            this.sort = {
+              prop,
+              order,
+            }
+            this.tableOptions.currentPage = 1;
+            this.fetchLogs();
           },
           /**
            * 处理分页大小变化
