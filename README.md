@@ -1,16 +1,27 @@
 # electron-hiprint
 
-这个项目是为 [vue-plugin-hiprint](https://github.com/CcSimple/vue-plugin-hiprint) 配套开发的不弹框静默打印方案，我们发现部分使用此项目的开发者有自己的设计器或渲染方案，也可能仅仅是需要将一段 HTML、一个 PDF 静默打印出来。如果你也是这样的需求，那么这个项目将能解决你的问题。
-
-## 预览 <a href="https://ccsimple.gitee.io/vue-plugin-hiprint/">vue-plugin-hiprint</a> 打印设计 demo
-
 <div align="center">
 
-![image](./res/electron-hiprint.png)
+![logo](./build/icons/100x100.png)
 
 </div>
 
-## 调试/打包
+该项目是为 [vue-plugin-hiprint](https://github.com/CcSimple/vue-plugin-hiprint) 配套开发的静默打印解决方案。我们发现部分使用此项目的开发者拥有自定义的设计器或渲染方案，或者仅需要静默打印一段 HTML、PDF。如果您也有类似需求，electron-hiprint 将是您的理想选择。
+
+<div align="center">
+
+![主界面](./res/electron-hiprint.png)
+
+</div>
+
+## 快速开始
+
+#### 下载发行版
+
+1. github: [https://github.com/CcSimple/electron-hiprint/releases](https://github.com/CcSimple/electron-hiprint/releases)
+2. gitee: [https://gitee.com/CcSimple/electron-hiprint/releases](https://gitee.com/CcSimple/electron-hiprint/releases)
+
+#### 调试、打包
 
 ```shell
 git clone https://github.com/CcSimple/electron-hiprint.git
@@ -22,16 +33,13 @@ cd electron-hiprint
 npm install
 
 # 调试预览
-# win
 npm run start
-# mac
-npm run startmac
 
 # 打包 win x64，其余平台版本详情见 package.json
 npm run build-w-64
 ```
 
-## Web 打印设计渲染插件
+## 推荐的 Web 打印设计渲染插件
 
 [vue-plugin-hiprint](https://github.com/CcSimple/vue-plugin-hiprint.git)
 
@@ -47,13 +55,19 @@ npm run build-w-64
    - 主要参数 html: 即 html 字符串，templateId: 用于回调 successs / error 时的标识
    - printer: 打印机名称，pageSize: 打印纸张大小 (其他参数,见下面的示例)
 
+## 网络拓扑
+
+<div align="center">
+
+![image](./res/electron-hiprint_LAN_network_topology.png)
+
+</div>
+
 ## 打印端设置
 
 ### v1.0.7 后续版本添加的设置功能
 
-可安装后于安装目录找到 config.json 修改配置，亦或者修改项目文件中默认值后重新打包发行自己的版本及设置。
-
-也可以右键托盘，选择 `设置` 后在 `设置` 窗口中进行设置。
+主界面点击设置图标，或者右键托盘，选择 `设置`。
 
 <div align="center">
 
@@ -88,11 +102,23 @@ npm run build-w-64
 
 ## 中转服务 [node-hiprint-transit](https://github.com/Xavier9896/node-hiprint-transit)
 
+<div align="center">
+
+![image](./res/electron-hiprint_set_transit.png)
+
+</div>
+
 使用此客户端打印一直存在 http 跨域、web 只能连接本机客户端等问题，所以诞生了 `node-hiprint-transit` 这个中转代理服务。在 `V1.0.7` 版本中，添加了连接中转服务代理的设置，通过这些配置，将会在 `客户端` 与 `node-hiprint-transit` 间建立通信，在你的项目中，只需连接中转服务就能获取到所有连接中转服务的 `客户端` 信息，并且可以选择任意客户端的任意打印机进行打印。
 
 如果你有云打印的需求，可以考虑使用此项目，将服务部署在服务器上，即可实现一个基础的云打印功能。
 
-> 如果你的项目是一个 SaaS 类型的项目，你需要自行二开以实现不同租户之间的隔离。
+<div align="center">
+
+![image](./res/electron-hiprint_transit_WAN_network_topology.png)
+
+</div>
+
+> [!NOTE] 如果你的项目是一个 SaaS 类型的项目，你需要自行二开以实现不同租户之间的隔离。
 
 # 非 `vue-plugin-hiprint` 插件连接使用本客户端说明
 
