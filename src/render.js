@@ -119,10 +119,15 @@ async function createRenderWindow() {
  */
 async function capturePage(event, data) {
   let socket = null;
-  if (data.clientType === "local") {
-    socket = SOCKET_SERVER.sockets.sockets.get(data.socketId);
-  } else {
-    socket = SOCKET_CLIENT;
+  switch (data.clientType) {
+    case "local":
+      socket = SOCKET_SERVER.sockets.sockets.get(data.socketId);
+      break;
+    case "transit":
+      socket = SOCKET_CLIENT;
+      break;
+    case "remote":
+      socket = null;
   }
   // !在 win 上窗口可以超出屏幕尺寸，直接使用 webContents.capturePage api 截图没有问题
   // !在 mac 上窗口不能超出屏幕尺寸，需要一点儿点儿截图最后拼接
@@ -197,7 +202,7 @@ async function capturePage(event, data) {
       result.composite(jimpImg, 0, idx * height);
     }
 
-    result
+    await result
       .getBuffer("image/jpeg", {
         quality: 100,
       })
@@ -214,20 +219,24 @@ async function capturePage(event, data) {
           );
         }
         log(
-          `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模版 【${
+          `${data.replyId ? "中转服务" : "插件端"} ${socket?.id} 模版 【${
             data.templateId
           }】 获取 png 成功`,
         );
-        socket.emit("render-jpeg-success", {
-          msg: `获取 jpeg 成功`,
-          templateId: data.templateId,
-          buffer,
-          replyId: data.replyId,
-        });
+        if (data.clientType === "remote") {
+          RENDER_RUNNER_DONE[data.taskId](buffer);
+        } else {
+          socket.emit("render-jpeg-success", {
+            msg: `获取 jpeg 成功`,
+            templateId: data.templateId,
+            buffer,
+            replyId: data.replyId,
+          });
+        }
       });
   } catch (error) {
     log(
-      `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模版 【${
+      `${data.replyId ? "中转服务" : "插件端"} ${socket?.id} 模版 【${
         data.templateId
       }】 获取 png 失败`,
     );
@@ -250,10 +259,15 @@ async function capturePage(event, data) {
  */
 function printToPDF(event, data) {
   let socket = null;
-  if (data.clientType === "local") {
-    socket = SOCKET_SERVER.sockets.sockets.get(data.socketId);
-  } else {
-    socket = SOCKET_CLIENT;
+  switch (data.clientType) {
+    case "local":
+      socket = SOCKET_SERVER.sockets.sockets.get(data.socketId);
+      break;
+    case "transit":
+      socket = SOCKET_CLIENT;
+      break;
+    case "remote":
+      socket = null;
   }
   RENDER_WINDOW.webContents
     .printToPDF({
@@ -280,15 +294,25 @@ function printToPDF(event, data) {
           () => {},
         );
       }
-      socket.emit("render-pdf-success", {
-        templateId: data.templateId,
-        buffer,
-        replyId: data.replyId,
-      });
+      log(
+        `${data.replyId ? "中转服务" : "插件端"} ${socket?.id} 模版 【${
+          data.templateId
+        }】 获取 pdf 成功`,
+      );
+      if (data.clientType === "remote") {
+        RENDER_RUNNER_DONE[data.taskId](buffer);
+      } else {
+        socket.emit("render-pdf-success", {
+          msg: "获取 pdf 成功",
+          templateId: data.templateId,
+          buffer,
+          replyId: data.replyId,
+        });
+      }
     })
     .catch((error) => {
       log(
-        `${data.replyId ? "中转服务" : "插件端"} ${socket.id} 模版 【${
+        `${data.replyId ? "中转服务" : "插件端"} ${socket?.id} 模版 【${
           data.templateId
         }】 获取 pdf 失败`,
       );

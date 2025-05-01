@@ -27,6 +27,7 @@ const {
   address,
   initServeEvent,
   initClientEvent,
+  initWebEvent,
 } = require("./tools/utils");
 const { machineIdSync } = require("node-machine-id");
 const TaskRunner = require("concurrent-tasks");
@@ -257,6 +258,7 @@ async function createWindow() {
         // 初始化中转 客户端事件
         initClientEvent();
       }
+      initWebEvent();
     } catch (error) {
       console.error(error);
     }

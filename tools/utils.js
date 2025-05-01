@@ -6,6 +6,11 @@ const { machineIdSync } = require("node-machine-id");
 const Store = require("electron-store");
 const { getPaperSizeInfo, getPaperSizeInfoAll } = require("win32-pdf-printer");
 const { v7: uuidv7 } = require("uuid");
+const express = require("express");
+const https = require("https");
+const cors = require("cors");
+const fs = require("fs");
+const path = require("path");
 const log = require("./log");
 
 Store.initRenderer();
@@ -683,7 +688,7 @@ function initClientEvent() {
         data.socketId = client.id;
         data.taskId = uuidv7();
         data.clientType = "transit";
-        RENDER_WINDOW.webContents.send("print", data);
+        RENDER_WINDOW.webContents.send("png", data);
         RENDER_RUNNER_DONE[data.taskId] = done;
       });
     }
@@ -695,7 +700,7 @@ function initClientEvent() {
         data.socketId = client.id;
         data.taskId = uuidv7();
         data.clientType = "transit";
-        RENDER_WINDOW.webContents.send("print", data);
+        RENDER_WINDOW.webContents.send("pdf", data);
         RENDER_RUNNER_DONE[data.taskId] = done;
       });
     }
@@ -710,9 +715,80 @@ function initClientEvent() {
   });
 }
 
+function initWebEvent() {
+  const app = express();
+
+  app.use(express.json());
+
+  app.use(
+    cors({
+      origin: "*",
+      methods: "GET, POST, PUT, DELETE, OPTIONS",
+      allowedHeaders: "*",
+      credentials: false,
+    }),
+  );
+
+  app.post("/pdf", (req, res) => {
+    const data = req.body;
+    RENDER_RUNNER.add((done) => {
+      data.taskId = uuidv7();
+      data.clientType = "remote";
+      RENDER_WINDOW.webContents.send("pdf", data);
+      RENDER_RUNNER_DONE[data.taskId] = function(buffer) {
+        if (buffer) {
+          res.set({
+            "Content-Type": "application/pdf",
+            "Content-Length": buffer.length,
+            "Content-Disposition": "attachment;",
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          });
+          res.send(buffer);
+          done();
+        }
+      };
+    });
+  });
+
+  app.post("/png", (req, res) => {
+    const data = req.body;
+    RENDER_RUNNER.add((done) => {
+      data.taskId = uuidv7();
+      data.clientType = "remote";
+      RENDER_WINDOW.webContents.send("png", data);
+      RENDER_RUNNER_DONE[data.taskId] = function(buffer) {
+        if (buffer) {
+          res.set({
+            "Content-Type": "image/png",
+            "Content-Length": buffer.length,
+            "Content-Disposition": "attachment;",
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          });
+          res.send(buffer);
+          done();
+        }
+      };
+    });
+  });
+
+  const options = {
+    key: fs.readFileSync(path.resolve(__dirname, "../ssl/certkey.pem")),
+    cert: fs.readFileSync(path.resolve(__dirname, "../ssl/fullchain.pem")),
+  };
+
+  https.createServer(options, app).listen(17522, () => {
+    console.log("Server is running on port 443");
+  });
+}
+
 module.exports = {
   store,
   address: _address,
   initServeEvent,
   initClientEvent,
+  initWebEvent,
 };
