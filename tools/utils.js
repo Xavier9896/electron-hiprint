@@ -737,7 +737,7 @@ function initWebEvent() {
   httpApp.use(
     cors({
       origin: "*",
-      methods: "GET, POST, PUT, DELETE, OPTIONS",
+      methods: "POST, OPTIONS",
       allowedHeaders: "*",
       credentials: false,
     }),
