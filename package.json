@@ -35,7 +35,8 @@
       "**/*"
     ],
     "extraResources": [
-      "plugin/*"
+      "plugin/*",
+      "ssl/*"
     ],
     "electronDownload": {
       "mirror": "https://npmmirror.com/mirrors/electron/"

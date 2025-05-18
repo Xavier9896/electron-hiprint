@@ -730,11 +730,11 @@ function initClientEvent() {
 }
 
 function initWebEvent() {
-  const app = express();
+  const httpApp = express();
 
-  app.use(express.json());
+  httpApp.use(express.json());
 
-  app.use(
+  httpApp.use(
     cors({
       origin: "*",
       methods: "GET, POST, PUT, DELETE, OPTIONS",
@@ -743,7 +743,7 @@ function initWebEvent() {
     }),
   );
 
-  app.post("/pdf", (req, res) => {
+  httpApp.post("/pdf", (req, res) => {
     const data = req.body;
     RENDER_RUNNER.add((done) => {
       data.taskId = uuidv7();
@@ -766,7 +766,7 @@ function initWebEvent() {
     });
   });
 
-  app.post("/png", (req, res) => {
+  httpApp.post("/png", (req, res) => {
     const data = req.body;
     RENDER_RUNNER.add((done) => {
       data.taskId = uuidv7();
@@ -789,12 +789,20 @@ function initWebEvent() {
     });
   });
 
+  let sslPath;
+
+  if (app.isPackaged) {
+    sslPath = path.join(app.getAppPath(), "../", "ssl");
+  } else {
+    sslPath = path.join(app.getAppPath(), "ssl");
+  }
+
   const options = {
-    key: fs.readFileSync(path.resolve(__dirname, "../ssl/certkey.pem")),
-    cert: fs.readFileSync(path.resolve(__dirname, "../ssl/fullchain.pem")),
+    key: fs.readFileSync(path.join(sslPath, "certkey.pem")),
+    cert: fs.readFileSync(path.join(sslPath, "fullchain.pem")),
   };
 
-  https.createServer(options, app).listen(store.get("httpPort"), () => {
+  https.createServer(options, httpApp).listen(store.get("httpPort"), () => {
     console.log(`Server is running on port ${store.get("httpPort")}`);
   });
 }
