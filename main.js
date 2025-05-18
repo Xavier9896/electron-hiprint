@@ -258,7 +258,9 @@ async function createWindow() {
         // 初始化中转 客户端事件
         initClientEvent();
       }
-      initWebEvent();
+      if (store.get("enableHttpServe")) {
+        initWebEvent();
+      }
     } catch (error) {
       console.error(error);
     }

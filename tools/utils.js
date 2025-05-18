@@ -86,6 +86,15 @@ const schema = {
     type: "boolean",
     default: true,
   },
+  enableHttpServe: {
+    type: "boolean",
+    default: false,
+  },
+  httpPort: {
+    type: "number",
+    minimum: 10000,
+    default: 17522,
+  },
 };
 
 const store = new Store({ schema });
@@ -785,8 +794,8 @@ function initWebEvent() {
     cert: fs.readFileSync(path.resolve(__dirname, "../ssl/fullchain.pem")),
   };
 
-  https.createServer(options, app).listen(17522, () => {
-    console.log("Server is running on port 443");
+  https.createServer(options, app).listen(store.get("httpPort"), () => {
+    console.log(`Server is running on port ${store.get("httpPort")}`);
   });
 }
 

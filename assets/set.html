@@ -80,10 +80,10 @@
                 :style="item.style"
               >
                 <template #label>
-                  <el-tooltip v-if="item.tips" :content="item.tips" placement="top-start">
-                    <span>{{item.label}} <i class="el-icon-question"></i></span>
+                  <span>{{item.label}}</span>
+                  <el-tooltip v-if="item.tips" :content="item.tips">
+                    <i class="el-icon-question"></i>
                   </el-tooltip>
-                  <span v-else>{{item.label}}</span>
                 </template>
                 <component
                   v-if="item.optionIs"
@@ -160,6 +160,10 @@
                 height: 600,
               },
               {
+                label: "Server设置",
+                name: "serverSet",
+              },
+              {
                 label: "中转设置",
                 name: "transitSet",
               },
@@ -184,6 +188,8 @@
               logPath: "",
               pdfPath: "",
               defaultPrinter: "",
+              enableHttpServe: false,
+              httpPort: 17522,
             },
             // 预制的版本，解决部分内网无法获取新版本的问题
             versions: [
@@ -210,6 +216,11 @@
         },
         computed: {
           formOptions() {
+            console.log(
+              this.setTab === "serverSet" && this.formData.enableHttpServe,
+              this.setTab === "serverSet",
+              this.formData.enableHttpServe,
+            );
             return {
               size: "small",
               labelPosition: "top",
@@ -348,7 +359,7 @@
                   display: this.setTab === "basicSet",
                 },
                 {
-                  label: "　",　// 全角空格占位，防止样式坍塌　
+                  label: "　", // 全角空格占位，防止样式坍塌
                   is: "el-button",
                   event: {
                     click: () => {
@@ -379,7 +390,7 @@
                   display: this.setTab === "basicSet",
                 },
                 {
-                  label: "　",　// 全角空格占位，防止样式坍塌
+                  label: "　", // 全角空格占位，防止样式坍塌
                   is: "el-button",
                   event: {
                     click: () => {
@@ -394,7 +405,49 @@
                   display: this.setTab === "basicSet",
                 },
                 {
-                  label: "连接中转代理服务(node-hiprint-transit)",
+                  label: "开启 HttpServe 服务",
+                  prop: "enableHttpServe",
+                  is: "el-switch",
+                  tips: "开启后可通过普通 http 请求调用 Render api",
+                  event: {
+                    change: () => this.handleTabChange(),
+                  },
+                  display: this.setTab === "serverSet",
+                },
+                {
+                  label: "Http服务端口设置",
+                  prop: "httpPort",
+                  is: "el-input-number",
+                  attrs: {
+                    min: 10000,
+                    max: 65535,
+                    controls: false,
+                    placeholder: "请输入10000-65535之间的端口号(17522)",
+                  },
+                  display:
+                    this.setTab === "serverSet" &&
+                    Boolean(this.formData.enableHttpServe),
+                  rules: [
+                    {
+                      required: true,
+                      message: "Http服务端口号不能为空",
+                      trigger: "blur",
+                    },
+                    {
+                      validator: (rule, value, callback) => {
+                        if (value === this.formData.port) {
+                          callback(
+                            new Error("Http服务端口号不能与打印服务端口号相同"),
+                          );
+                        } else {
+                          callback();
+                        }
+                      }
+                    }
+                  ],
+                },
+                {
+                  label: "连接中转代理服务",
                   prop: "connectTransit",
                   is: "el-switch",
                   tips: "通过中转代理可以实现云打印，摆脱局域网限制",
@@ -412,7 +465,7 @@
                   },
                   display:
                     this.setTab === "transitSet" &&
-                    this.formData.connectTransit,
+                    Boolean(this.formData.connectTransit),
                   rules: [
                     {
                       required: true,
@@ -443,7 +496,7 @@
                   ],
                 },
                 {
-                  label: "　",　// 全角空格占位，防止样式坍塌
+                  label: "　", // 全角空格占位，防止样式坍塌
                   prop: "connectTest",
                   is: "el-button",
                   event: {
