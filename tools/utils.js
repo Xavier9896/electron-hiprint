@@ -739,7 +739,7 @@ function initWebEvent() {
       origin: "*",
       methods: "POST, OPTIONS",
       allowedHeaders: "*",
-      credentials: false,
+      credentials: true,
     }),
   );
 
