@@ -2,7 +2,7 @@ name: Release Build
 
 on:
   push:
-    # 仅匹配 1.2.3 或 1.2.3-beta1 这样的 tag，例如 1.0.0、2.3.4-beta2
+    # 只匹配 1.2.3 或 1.2.3-beta1 这样的 tag，例如 1.0.0、2.3.4-beta2
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+-beta[0-9]+"
@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 校验 package.json version 与 tag 一致
         run: |
@@ -32,16 +32,51 @@ jobs:
             echo "✅ package.json 里的 version 和 tag ($TAG_NAME) 一致，继续执行。"
           fi
 
-
-  build-win:
-    name: Windows 打包
-    runs-on: windows-latest
+  build:
+    name: 多平台打包
     needs: check-version
-    outputs:
-      artifacts-path: ${{ steps.set-artifacts-path.outputs.result }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Windows 构建
+          - os: windows-latest
+            platform: win
+            arch: x64
+            script: build-w-64
+            name-suffix: win_x64
+          - os: windows-latest
+            platform: win
+            arch: ia32
+            script: build-w
+            name-suffix: win_x32
+          # macOS 构建
+          - os: macos-latest
+            platform: mac
+            arch: x64
+            script: build-m
+            name-suffix: mac_x64
+          - os: macos-latest
+            platform: mac
+            arch: arm64
+            script: build-m-arm64
+            name-suffix: mac_arm64
+          # Linux 构建
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+            script: build-l
+            name-suffix: linux_x64
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            script: build-l-arm64
+            name-suffix: linux_arm64
+
+    runs-on: ${{ matrix.os }}
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
@@ -51,33 +86,29 @@ jobs:
       - name: 安装依赖
         run: npm install
 
-      - name: 打包 Windows 32位
-        run: npm run build-w
+      - name: 打包 ${{ matrix.platform }} ${{ matrix.arch }}
+        run: npm run ${{ matrix.script }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 打包 Windows 64位
-        run: npm run build-w-64
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 设置产物路径
-        id: set-artifacts-path
-        run: echo "result=out" >> $GITHUB_OUTPUT
 
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: win-builds
-          path: out/*.exe
+          name: ${{ matrix.name-suffix }}
+          path: |
+            out/*.exe
+            out/*.dmg
+            out/*.tar.xz
+            out/*.deb
+          retention-days: 30
 
-  build-mac:
-    name: macOS 打包
-    runs-on: macos-latest
+  build-universal:
+    name: macOS Universal 打包
     needs: check-version
+    runs-on: macos-latest
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
@@ -86,16 +117,6 @@ jobs:
 
       - name: 安装依赖
         run: npm install
-
-      - name: 打包 macOS x64
-        run: npm run build-m
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 打包 macOS arm64
-        run: npm run build-m-arm64
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: 打包 macOS Universal
         run: npm run build-m-universal
@@ -105,78 +126,68 @@ jobs:
       - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
-          name: mac-builds
+          name: mac_universal
           path: out/*.dmg
-
-  build-linux:
-    name: Linux 打包
-    runs-on: ubuntu-latest
-    needs: check-version
-    steps:
-      - name: 拉取代码
-        uses: actions/checkout@v3
-
-      - name: 设置 Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-
-      - name: 安装依赖
-        run: npm install
-
-      - name: 打包 Linux x64
-        run: npm run build-l
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 打包 Linux arm64
-        run: npm run build-l-arm64
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: 上传构建产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: linux-builds
-          path: |
-            out/*.tar.xz
-            out/*.deb
-
+          retention-days: 30
 
   release:
     name: 自动发布 Release
-    needs: [build-win, build-mac, build-linux]
+    needs: [build, build-universal]
     runs-on: ubuntu-latest
     steps:
       - name: 拉取代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 下载各平台构建产物
-      - name: 下载 Windows 产物
+      # 下载所有构建产物
+      - name: 下载 Windows x64 产物
         uses: actions/download-artifact@v4
         with:
-          name: win-builds
-          path: artifacts/win
+          name: win_x64
+          path: artifacts/
 
-      - name: 下载 macOS 产物
+      - name: 下载 Windows x32 产物
         uses: actions/download-artifact@v4
         with:
-          name: mac-builds
-          path: artifacts/mac
+          name: win_x32
+          path: artifacts/
 
-      - name: 下载 Linux 产物
+      - name: 下载 macOS x64 产物
         uses: actions/download-artifact@v4
         with:
-          name: linux-builds
-          path: artifacts/linux
+          name: mac_x64
+          path: artifacts/
+
+      - name: 下载 macOS ARM64 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: mac_arm64
+          path: artifacts/
+
+      - name: 下载 macOS Universal 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: mac_universal
+          path: artifacts/
+
+      - name: 下载 Linux x64 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: linux_x64
+          path: artifacts/
+
+      - name: 下载 Linux ARM64 产物
+        uses: actions/download-artifact@v4
+        with:
+          name: linux_arm64
+          path: artifacts/
 
       # 自动生成 Release Notes（使用 tag 相关 commit 信息）
       - name: 生成 Release Notes
         id: changelog
         run: |
           TAG_NAME="${GITHUB_REF##refs/tags/}"
-          PREV_TAG=$(git tag --sort=-creatordate | grep -B1 "^${TAG_NAME}$" | head -n1)
-          if [ -z "$PREV_TAG" ]; then
+          PREV_TAG=$(git tag --sort=-creatordate | grep -A1 "^${TAG_NAME}$" | tail -n1)
+          if [ -z "$PREV_TAG" ] || [ "$PREV_TAG" = "$TAG_NAME" ]; then
             git log -1 --pretty=format:"%h %s" "$TAG_NAME" > release_notes.txt
           else
             git log "$PREV_TAG..$TAG_NAME" --pretty=format:"- %h %s" > release_notes.txt
@@ -189,12 +200,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          name: "electron-hiprint ${{ github.ref_name }}"
           body: ${{ steps.changelog.outputs.release_notes }}
-          files: |
-            artifacts/win/**
-            artifacts/mac/**
-            artifacts/linux/**
+          files: artifacts/**
           prerelease: ${{ contains(github.ref_name, 'beta') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
