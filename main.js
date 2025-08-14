@@ -14,6 +14,7 @@ const {
   Menu,
   shell,
 } = require("electron");
+const electronLog = require("electron-log");
 const path = require("path");
 const server = require("http").createServer();
 const helper = require("./src/helper");
@@ -21,7 +22,6 @@ const printSetup = require("./src/print");
 const renderSetup = require("./src/render");
 const setSetup = require("./src/set");
 const printLogSetup = require("./src/printLog");
-const log = require("./tools/log");
 const {
   store,
   address,
@@ -31,6 +31,12 @@ const {
 } = require("./tools/utils");
 
 const TaskRunner = require("concurrent-tasks");
+const dayjs = require("dayjs");
+
+const logPath = store.get("logPath") || app.getPath("logs");
+
+electronLog.transports.file.resolvePathFn = () =>
+  path.join(logPath, dayjs().format("YYYY-MM-DD.log"));
 
 if (store.get("disabledGpu")) {
   app.commandLine.appendSwitch("disable-gpu");
@@ -147,6 +153,7 @@ async function initialize() {
 
   // 当electron完成初始化
   app.whenReady().then(() => {
+    Object.assign(console, electronLog.functions);
     // 创建浏览器窗口
     createWindow();
     app.on("activate", function() {
@@ -154,7 +161,8 @@ async function initialize() {
         createWindow();
       }
     });
-    log("==> Electron-hiprint 启动 <==");
+    console.error(new Error("测试自定义日志错误日志"));
+    console.log("==> Electron-hiprint 启动 <==");
   });
 }
 
