@@ -13,6 +13,7 @@ const {
   Tray,
   Menu,
   shell,
+  crashReporter,
 } = require("electron");
 const electronLog = require("electron-log");
 const path = require("path");
@@ -37,6 +38,27 @@ const logPath = store.get("logPath") || app.getPath("logs");
 
 electronLog.transports.file.resolvePathFn = () =>
   path.join(logPath, dayjs().format("YYYY-MM-DD.log"));
+
+crashReporter.start({
+  submitURL: "",
+  uploadToServer: false,
+  crashesDirectory: logPath,
+  extra: {
+    version: app.getVersion(),
+  },
+});
+
+// 监听崩溃事件
+process.on("uncaughtException", (error) => {
+  console.error(error);
+});
+
+// 监听渲染进程崩溃
+app.on("web-contents-created", (event, contents) => {
+  contents.on("render-process-gone", (event, details) => {
+    console.error(details.reason);
+  });
+});
 
 if (store.get("disabledGpu")) {
   app.commandLine.appendSwitch("disable-gpu");
